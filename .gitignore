@@ -1,0 +1,146 @@
+# 复制为下游仓库的 .gitignore。
+#
+# 两处刻意的省略，改动前先读：
+#   * 不写 Python 惯例里的 build/ —— buildkit 的构建脚本就在 build/ 下，会被整个忽略。
+#     本项目不做 Python 打包，不需要这一条。
+#   * 不写 *.gpg / *.key / keys/ 这类密钥通配 —— 源的 keyring（keys/*-archive-keyring.gpg）
+#     是必须入库的公钥，不是私密材料，被忽略会让构建在验签处失败。
+
+# ── 构建产物与运行时状态 ────────────────────────────────
+*.tar
+*.tar.*
+*.squashfs
+*.iso
+out/
+work/
+logs/
+localrepo/
+ship/
+imgs/
+results/
+report-*/
+*.epoch
+
+# 门禁探针的编译产物与运行时状态。
+# .gate-status 尤其不能入库：verify.sh 读它判断门禁是否适用，
+# 陈旧的副本会让「不适用」被当成「通过」。
+gate/t_low
+gate/t_high
+gate/t_high_cxx
+gate/t_*probe*
+gate/.gate-status
+
+# ── 操作系统 ────────────────────────────────────────────
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.AppleDouble
+.LSOverride
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+.fuse_hidden*
+
+# ── 编辑器与 IDE ────────────────────────────────────────
+# JetBrains
+.idea/
+*.iml
+*.iws
+out-jetbrains/
+# VS Code（保留 settings.json 之类需要共享的配置时，用 !.vscode/settings.json 放行）
+.vscode/
+*.code-workspace
+# Vim / Neovim
+*.swp
+*.swo
+*.swn
+Session.vim
+.netrwhist
+tags
+# Emacs
+\#*\#
+.\#*
+*.elc
+auto-save-list/
+# Sublime / Eclipse / Kate / nano
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+.kateproject
+*.save
+# JupyterLab / IPython
+.ipynb_checkpoints/
+.virtual_documents/
+
+# ── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+sdist/
+wheels/
+.installed.cfg
+# 虚拟环境
+.venv/
+venv/
+ENV/
+env/
+.python-version
+# 工具缓存
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+# 覆盖率
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+nosetests.xml
+
+# ── Shell 与通用 ────────────────────────────────────────
+*.log
+*.bak
+*.orig
+*.rej
+*.tmp
+*.temp
+core
+core.[0-9]*
+nohup.out
+.shellcheck-cache/
+# 本地环境变量与 direnv：几乎一定含机密
+.env
+.env.*
+!.env.example
+.envrc
+.direnv/
+
+# ── 归档与体积较大的临时物 ──────────────────────────────
+*.zip
+*.gz
+*.xz
+*.zst
+*.bz2
+*.7z
+*.rar

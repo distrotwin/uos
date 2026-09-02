@@ -1,0 +1,120 @@
+name: 构建镜像
+
+# 只允许手动触发。切片路径每个 job 要抽几个 GiB 的 squashfs 再解包，比麒麟那套更重。
+#
+# 阶段：
+#   harvest  只采 squashfs 指纹（conf 里 SQUASHFS_SHA256 为空时用一次），不构建
+#   build    版本 × 架构，一个 job 出 micro/base/devel 三个镜像
+#   test     版本 × 架构 × 档位，干净机器装载、真启动、跑完整检查集
+#   report   每系统一份报告 + 完整日志 artifact
+#   publish  独立阶段，只有显式勾选且 test 与 report 全绿才跑
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "测试全绿后发布到 GHCR（默认不发布）"
+        type: boolean
+        default: false
+      include-loongarch:
+        description: "把 V25 的 loong64 一并构建（需 QEMU 模拟，较慢）"
+        type: boolean
+        default: false
+      harvest:
+        description: "只采 squashfs 指纹，不构建（conf 里锚点为空时用）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ── 原生架构。UOS 的 sw_64 与 V20 的 loongarch64（旧世界）不列入：
+  #    QEMU 无对应后端、GitHub 也没有这两种 runner，建得出但测不了，
+  #    收进来就是在破坏「测过才发」。理由与麒麟 V10 SP1 的 loong 同。
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        did: [v20, v25]
+        arch: [amd64, arm64]
+    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@50dac049b5236dddbed4fa9c2512d105fb1eafdb
+    with:
+      distro-id: ${{ matrix.did }}
+      arch:      ${{ matrix.arch }}
+      runner:    ${{ matrix.arch == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-22.04' }}
+      harvest:   ${{ inputs.harvest }}
+
+  # ── V25 的 loong64 是新世界（V20 只有旧世界，故只有 V25 有这一路）
+  build-loong:
+    if: inputs.include-loongarch
+    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@50dac049b5236dddbed4fa9c2512d105fb1eafdb
+    with:
+      distro-id: v25
+      arch:      loong64
+      runner:    ubuntu-24.04
+      harvest:   ${{ inputs.harvest }}
+      timeout-minutes: 180
+
+  test:
+    needs: [build]
+    if: always() && needs.build.result == 'success' && !inputs.harvest
+    strategy:
+      fail-fast: false
+      matrix:
+        did: [v20, v25]
+        arch: [amd64, arm64]
+        tier: [micro, base, devel]
+    uses: distrotwin/buildkit/.github/workflows/test-one.yml@50dac049b5236dddbed4fa9c2512d105fb1eafdb
+    with:
+      distro-id: ${{ matrix.did }}
+      arch:      ${{ matrix.arch }}
+      tier:      ${{ matrix.tier }}
+      runner:    ${{ matrix.arch == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-22.04' }}
+
+  test-loong:
+    needs: [build-loong]
+    if: always() && inputs.include-loongarch && !inputs.harvest
+    strategy:
+      fail-fast: false
+      matrix:
+        tier: [micro, base, devel]
+    uses: distrotwin/buildkit/.github/workflows/test-one.yml@50dac049b5236dddbed4fa9c2512d105fb1eafdb
+    with:
+      distro-id:  v25
+      arch:       loong64
+      tier:       ${{ matrix.tier }}
+      runner:     ubuntu-24.04
+      needs-qemu: true
+
+  report:
+    needs: [test, test-loong]
+    if: always() && !inputs.harvest
+    uses: distrotwin/buildkit/.github/workflows/report.yml@50dac049b5236dddbed4fa9c2512d105fb1eafdb
+    with:
+      distros:  '["v20","v25"]'
+      expected: ${{ inputs.include-loongarch && 15 || 12 }}
+      baseline: ${{ inputs.include-loongarch && 480 || 380 }}
+
+  publish:
+    needs: [test, report]
+    if: inputs.publish && !inputs.harvest && needs.test.result == 'success' && needs.report.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { did: v20, prefix: v20, tier: micro, latest: false }
+          - { did: v20, prefix: v20, tier: base,  latest: false }
+          - { did: v20, prefix: v20, tier: devel, latest: false }
+          - { did: v25, prefix: v25, tier: micro, latest: false }
+          - { did: v25, prefix: v25, tier: base,  latest: false }
+          # latest 指向最高版本的 devel
+          - { did: v25, prefix: v25, tier: devel, latest: true }
+    uses: distrotwin/buildkit/.github/workflows/publish-one.yml@50dac049b5236dddbed4fa9c2512d105fb1eafdb
+    with:
+      distro-id:  ${{ matrix.did }}
+      tier:       ${{ matrix.tier }}
+      image:      uos
+      tag-prefix: ${{ matrix.prefix }}
+      arches:     ${{ inputs.include-loongarch && matrix.did == 'v25' && 'amd64 arm64 loong64' || 'amd64 arm64' }}
+      latest:     ${{ matrix.latest }}
