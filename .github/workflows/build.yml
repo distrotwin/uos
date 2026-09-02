@@ -38,7 +38,7 @@ jobs:
       matrix:
         did: [v20, v25]
         arch: [amd64, arm64]
-    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@8f86879c067d6d3ff862f222013ec1e5f0e0c8a3
+    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@0fcbb1f028b9a7b77ba499cf545df9bef23f7963
     with:
       distro-id: ${{ matrix.did }}
       arch:      ${{ matrix.arch }}
@@ -48,13 +48,14 @@ jobs:
   # ── V25 的 loong64 是新世界（V20 只有旧世界，故只有 V25 有这一路）
   build-loong:
     if: inputs.include-loongarch
-    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@8f86879c067d6d3ff862f222013ec1e5f0e0c8a3
+    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@0fcbb1f028b9a7b77ba499cf545df9bef23f7963
     with:
       distro-id: v25
       arch:      loong64
       runner:    ubuntu-24.04
       harvest:   ${{ inputs.harvest }}
-      timeout-minutes: 300     # loong64 的盘更大，且只能跑在 amd64 runner 上
+      needs-qemu: true         # 切片要 chroot 进 loong64 rootfs 跑 ldconfig/localedef
+      timeout-minutes: 300     # 只能跑在 amd64 runner 上，且盘更大
 
   test:
     needs: [build]
@@ -65,7 +66,7 @@ jobs:
         did: [v20, v25]
         arch: [amd64, arm64]
         tier: [micro, base, devel]
-    uses: distrotwin/buildkit/.github/workflows/test-one.yml@8f86879c067d6d3ff862f222013ec1e5f0e0c8a3
+    uses: distrotwin/buildkit/.github/workflows/test-one.yml@0fcbb1f028b9a7b77ba499cf545df9bef23f7963
     with:
       distro-id: ${{ matrix.did }}
       arch:      ${{ matrix.arch }}
@@ -79,7 +80,7 @@ jobs:
       fail-fast: false
       matrix:
         tier: [micro, base, devel]
-    uses: distrotwin/buildkit/.github/workflows/test-one.yml@8f86879c067d6d3ff862f222013ec1e5f0e0c8a3
+    uses: distrotwin/buildkit/.github/workflows/test-one.yml@0fcbb1f028b9a7b77ba499cf545df9bef23f7963
     with:
       distro-id:  v25
       arch:       loong64
@@ -90,7 +91,7 @@ jobs:
   report:
     needs: [test, test-loong]
     if: always() && !inputs.harvest
-    uses: distrotwin/buildkit/.github/workflows/report.yml@8f86879c067d6d3ff862f222013ec1e5f0e0c8a3
+    uses: distrotwin/buildkit/.github/workflows/report.yml@0fcbb1f028b9a7b77ba499cf545df9bef23f7963
     with:
       distros:  '["v20","v25"]'
       expected: ${{ inputs.include-loongarch && 15 || 12 }}
@@ -110,7 +111,7 @@ jobs:
           - { did: v25, prefix: v25, tier: base,  latest: false }
           # latest 指向最高版本的 devel
           - { did: v25, prefix: v25, tier: devel, latest: true }
-    uses: distrotwin/buildkit/.github/workflows/publish-one.yml@8f86879c067d6d3ff862f222013ec1e5f0e0c8a3
+    uses: distrotwin/buildkit/.github/workflows/publish-one.yml@0fcbb1f028b9a7b77ba499cf545df9bef23f7963
     with:
       distro-id:  ${{ matrix.did }}
       tier:       ${{ matrix.tier }}
