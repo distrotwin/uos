@@ -38,7 +38,7 @@ jobs:
       matrix:
         did: [v20, v25]
         arch: [amd64, arm64]
-    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@8e7c8440374916a7dd2cf55c654ff3370200c4df
+    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@554d1eee848465232c41856946c99a6412e5166c
     with:
       distro-id: ${{ matrix.did }}
       arch:      ${{ matrix.arch }}
@@ -48,7 +48,7 @@ jobs:
   # ── V25 的 loong64 是新世界（V20 只有旧世界，故只有 V25 有这一路）
   build-loong:
     if: inputs.include-loongarch
-    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@8e7c8440374916a7dd2cf55c654ff3370200c4df
+    uses: distrotwin/buildkit/.github/workflows/build-slice.yml@554d1eee848465232c41856946c99a6412e5166c
     with:
       distro-id: v25
       arch:      loong64
@@ -66,7 +66,7 @@ jobs:
         did: [v20, v25]
         arch: [amd64, arm64]
         tier: [micro, base, devel]
-    uses: distrotwin/buildkit/.github/workflows/test-one.yml@8e7c8440374916a7dd2cf55c654ff3370200c4df
+    uses: distrotwin/buildkit/.github/workflows/test-one.yml@554d1eee848465232c41856946c99a6412e5166c
     with:
       distro-id: ${{ matrix.did }}
       arch:      ${{ matrix.arch }}
@@ -80,7 +80,7 @@ jobs:
       fail-fast: false
       matrix:
         tier: [micro, base, devel]
-    uses: distrotwin/buildkit/.github/workflows/test-one.yml@8e7c8440374916a7dd2cf55c654ff3370200c4df
+    uses: distrotwin/buildkit/.github/workflows/test-one.yml@554d1eee848465232c41856946c99a6412e5166c
     with:
       distro-id:  v25
       arch:       loong64
@@ -91,7 +91,7 @@ jobs:
   report:
     needs: [test, test-loong]
     if: always() && !inputs.harvest
-    uses: distrotwin/buildkit/.github/workflows/report.yml@8e7c8440374916a7dd2cf55c654ff3370200c4df
+    uses: distrotwin/buildkit/.github/workflows/report.yml@554d1eee848465232c41856946c99a6412e5166c
     with:
       distros:  '["v20","v25"]'
       expected: ${{ inputs.include-loongarch && 15 || 12 }}
@@ -111,7 +111,7 @@ jobs:
           - { did: v25, prefix: v25, tier: base,  latest: false }
           # latest 指向最高版本的 devel
           - { did: v25, prefix: v25, tier: devel, latest: true }
-    uses: distrotwin/buildkit/.github/workflows/publish-one.yml@8e7c8440374916a7dd2cf55c654ff3370200c4df
+    uses: distrotwin/buildkit/.github/workflows/publish-one.yml@554d1eee848465232c41856946c99a6412e5166c
     with:
       distro-id:  ${{ matrix.did }}
       tier:       ${{ matrix.tier }}
