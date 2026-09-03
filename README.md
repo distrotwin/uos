@@ -224,6 +224,8 @@ amd64 与 arm64 由原生 runner 构建；V25 另有 loong64（QEMU 模拟构建
 
 统信桌面**没有可 bootstrap 的 apt 源**，所以两个版本都走切片：HTTP Range 从官方 ISO 里只抽 `live/filesystem.squashfs`（不下整盘）→ 按 sha256 校验 → `unsquashfs` → 按包依赖闭包切片 → 补回 postinst 生成物（`ld.so.cache`、locale 归档、CA 信任库、`update-alternatives` 链接）。
 
+切片带来一个附带的好处：**镜像里每个包的版本就是介质上的版本**，同一批构建，不存在「归档比装机盘旧」的问题——那是在线源自举路径特有的缝（参见[银河麒麟镜像](https://github.com/distrotwin/kylin)README 里那一节）。代价是镜像只含依赖闭包内的子集，不是整盘。
+
 盘内虽有 `dists/eagle`，但那是安装器的 overlay 仓库（`Origin: isobuild`，`Packages` 只有 123 KB），不足以自举；系统本体在 squashfs 里。厂商的容器镜像仓库 `registry.uniontech.com` 只有服务器版，桌面版一个都没有。
 
 每个镜像发布前都在**干净机器上**装载、真正启动、跑完整检查集。最近一轮 15 个镜像、619 项检查、**零异常**。测试报告与完整日志按系统打包在每次 run 的 artifact 里。
