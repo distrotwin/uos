@@ -200,7 +200,8 @@ docker inspect --format '{{json .Config.Labels}}' \
 |---|---|
 | `cn.internal.glibc` / `libstdcpp` / `glibcxx` | **实测**的 ABI 值，来自测试阶段在干净机器上跑出来的结果 |
 | `cn.internal.arch` / `tier` / `build-method` | 架构、档位、走的哪条构建路径（这里一律是 `slice`） |
-| `cn.internal.uos-commit` / `buildkit-commit` | 哪份配置与哪份脚本建的 |
+| `cn.internal.repo-commit` / `buildkit-commit` | 哪份配置与哪份脚本建的 |
+| `cn.internal.iso-url` / `squashfs-sha256` | 切自哪张盘的哪个 squashfs——ISO 路径的溯源锚点 |
 | `cn.internal.build-run` | 跳回当时的 CI 日志与测试报告 |
 
 ## 架构与 ABI 分叉
